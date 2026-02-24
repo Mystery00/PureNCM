@@ -1,54 +1,19 @@
-# PureNCM - 桌面端 NCM 音频转换工具 - 需求与技术选型文档 (init.md)
+# README
 
-## 1. 项目概述
-本项目旨在开发一款轻量级、高性能的桌面端音频处理工具，仅供个人使用。
-* **核心功能**：在本地脱机环境下，将网易云音乐的加密格式（`.ncm`）批量解密并还原为标准的 `.flac` 或 `.mp3` 格式，同时完整保留歌曲的元数据（封面、歌手、专辑等信息）。
-* **目标平台**：优先支持 Windows（原生运行体验），架构层面需天然兼容并支持后续编译为 macOS 版本。
+## About
 
-## 2. 技术栈选型
-摒弃传统基于 JVM 的重型方案（如 CMP），采用现代化的“轻量级前端 + 高性能原生后端”的跨平台架构：
+This is the official Wails Vue-TS template.
 
-* **核心框架**：**Wails v2**
-* **后端语言**：**Go (Golang)**
-  * 负责底层文件 I/O、AES/RC4 字节流解密运算、ID3/FLAC 标签写入、以及本地配置文件的读写。
-* **前端骨架**：**Vue 3** (基于 Vite 构建，采用 Composition API / `<script setup>` 语法)。
-* **UI 组件库**：**Naive UI**
-  * 采用其极简、克制的视觉风格，主要依赖其 Data Table（数据表格）、Upload（拖拽上传/选择文件）、Button、Progress（进度条）和 Message（全局提示）等组件。
+You can configure the project by editing `wails.json`. More information about the project settings can be found
+here: https://wails.io/docs/reference/project-config
 
-## 3. 核心交互与业务流程 (UI/UX)
-应用采用典型的“效率型批处理”模式，具体设定如下：
+## Live Development
 
-### 3.1 进件与列表管理 (文件输入)
-* **UI 呈现**：主界面核心区域为一个清晰的文件列表（数据表格 `DataTable`）。
-* **操作交互**：支持点击顶部按钮“添加文件/文件夹”，同时主界面区域支持直接将多个 `.ncm` 文件拖拽进入。
-* **数据展示**：列表需展示待处理文件的信息，包括：文件名、文件大小、当前状态（等待中 / 转换中 / 成功 / 失败）。
+To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
+server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
+and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
+to this in your browser, and you can call your Go code from devtools.
 
-### 3.2 统一收纳与配置持久化 (目录设置)
-* **输出规则**：转换后的文件不原地保存，而是统一输出到用户指定的“固定文件夹”中。
-* **配置入口**：界面需提供一个“输出目录”的配置选项（如顶部操作栏的文件夹选择器）。
-* **数据持久化**：用户选择的输出目录路径，需由 Go 后端持久化保存到本地（例如用户 `AppData` 或统一的 `config.json` 中）。每次启动程序时，自动读取并加载该路径，实现“一次配置，永久生效”。
+## Building
 
-### 3.3 “洗衣机”批量处理模式 (触发机制)
-* **操作交互**：文件加入列表后不会立即转换。用户可以继续添加或检查列表，确认无误后，点击统一的“全部开始转换”按钮（Batch Process）。
-* **进度反馈**：转换开始后，列表中的文件状态和全局进度条需实时更新，通过 Wails 的 IPC 机制由 Go 后端向 Vue 前端推送进度。
-
-### 3.4 智能无损还原 (格式输出)
-* **原质原味**：软件不提供“强制转码为某特定格式”的选项。
-* **智能识别**：Go 后端在解密 NCM 文件流时，需识别解密后数据的真实文件头。如果是无损格式则直接封装为 `.flac`，如果是有损格式则封装为 `.mp3`，保证最高音质且不进行二次重编码。
-
-## 4. 核心技术实现细节 (Go 后端)
-后端的 NCM 解密算法需包含以下完整步骤：
-1. **Magic Header 校验**：验证文件头是否为 NCM 格式特征。
-2. **AES 密钥解密**：读取被加密的 AES 密钥，使用 NCM 标准 Core Key 对其进行 AES 解密，获取当前文件的**真实文件密钥**。
-3. **元数据解析**：读取 Meta 块，解密并进行 Base64 解码，提取 JSON 格式的歌曲信息（歌名、歌手、专辑、封面图片 URL）。
-4. **RC4 音频流解密**：使用“文件密钥”生成 RC4 S-Box，对剩余的加密音频数据流进行异或 (XOR) 运算，还原出真实的 MP3/FLAC 字节流。
-5. **元数据补全 (Tagging)**：将提取到的 JSON 信息和下载/提取的封面图片，使用 Go 相关的 Tag 库（如 `id3v2` 或 `flac` tag 库）写入到最终生成的音频文件中。
-
-## 5. 阶段性开发计划 (Sprints)
-后续开发请严格按照以下步骤递进式实现：
-* **Step 1：项目初始化**。使用 `wails init -n ncm-converter -t vue-ts` 创建工程，清理无用代码，引入 Naive UI 并配置好 Vite。
-* **Step 2：Go 后端核心解密引擎**。实现 NCM 文件的纯逻辑解密模块，先脱离界面在终端能成功跑通 `file.ncm -> file.mp3/flac`。
-* **Step 3：本地配置系统**。在 Go 端实现 `config.json` 的读写逻辑，并暴露出获取/更新输出目录的 API 给前端。
-* **Step 4：Vue 前端界面搭建**。使用 Naive UI 搭建顶部操作栏、本地目录选择器、拖拽上传区域和文件状态表格。
-* **Step 5：前后端 IPC 桥接**。将前端的“开始转换”指令绑定到 Go 后端的方法，并实现 Go 后端使用 Wails Events 向前端实时推送转换进度和文件状态。
-* **Step 6：元数据与边界测试**。完善封面下载与 Tag 写入逻辑，处理空文件、异常文件、输出目录无权限等边界错误，并最终编译打包测试。
+To build a redistributable, production mode package, use `wails build`.
