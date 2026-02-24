@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"PureNCM/internal/config"
 )
@@ -16,19 +20,15 @@ func NewApp() *App {
 	return &App{}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods later.
+// startup is called when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Load persisted config (creates defaults on first run)
 	if _, err := config.Load(); err != nil {
-		// Non-fatal: app continues with in-memory defaults
-		// Error will surface when user tries to save settings
-		_ = err
+		_ = err // non-fatal, continue with defaults
 	}
 }
 
-// --- Config API (exposed to frontend via Wails bindings) ---
+// --- Config API ---
 
 // GetConfig returns the current application configuration.
 func (a *App) GetConfig() *config.Config {
@@ -41,7 +41,41 @@ func (a *App) SetOutputDir(dir string) error {
 }
 
 // SetFilenamePattern updates and persists the filename format pattern.
-// Supported placeholders: {title}, {artist}, {album}
 func (a *App) SetFilenamePattern(pattern string) error {
 	return config.SetFilenamePattern(pattern)
+}
+
+// --- Dialog API ---
+
+// OpenFileDialog opens a native file picker filtered to .ncm files.
+// Returns a list of selected file paths.
+func (a *App) OpenFileDialog() ([]string, error) {
+	return runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "选择 NCM 文件",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "NCM 加密音乐 (*.ncm)", Pattern: "*.ncm"},
+		},
+	})
+}
+
+// OpenDirectoryDialog opens a native folder picker.
+// Returns the selected directory path (empty string if cancelled).
+func (a *App) OpenDirectoryDialog() (string, error) {
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title:            "选择输出目录",
+		DefaultDirectory: defaultOutputDir(),
+	})
+}
+
+// defaultOutputDir returns the user's Music folder as the default pick location.
+func defaultOutputDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	music := filepath.Join(home, "Music")
+	if _, err := os.Stat(music); err == nil {
+		return music
+	}
+	return home
 }

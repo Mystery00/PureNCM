@@ -4,6 +4,10 @@ import {config} from '../models';
 
 export function GetConfig():Promise<config.Config>;
 
+export function OpenDirectoryDialog():Promise<string>;
+
+export function OpenFileDialog():Promise<Array<string>>;
+
 export function SetFilenamePattern(arg1:string):Promise<void>;
 
 export function SetOutputDir(arg1:string):Promise<void>;

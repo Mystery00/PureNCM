@@ -6,6 +6,14 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function OpenDirectoryDialog() {
+  return window['go']['main']['App']['OpenDirectoryDialog']();
+}
+
+export function OpenFileDialog() {
+  return window['go']['main']['App']['OpenFileDialog']();
+}
+
 export function SetFilenamePattern(arg1) {
   return window['go']['main']['App']['SetFilenamePattern'](arg1);
 }
