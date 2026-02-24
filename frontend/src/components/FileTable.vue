@@ -95,8 +95,6 @@ const columns = computed<DataTableColumns<FileItem>>(() => [
       :data="files"
       :columns="columns"
       :row-key="(r: FileItem) => r.id"
-      :max-height="'100%'"
-      flex-height
       size="small"
       striped
     />
@@ -111,7 +109,7 @@ const columns = computed<DataTableColumns<FileItem>>(() => [
 <style scoped>
 .file-table-wrap {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 0 4px;

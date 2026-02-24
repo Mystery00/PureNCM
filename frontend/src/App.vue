@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import {
-  NConfigProvider, NMessageProvider, NLayout,
-  NLayoutHeader, NLayoutContent,
+  NConfigProvider, NMessageProvider,
   darkTheme,
 } from 'naive-ui'
 import TopBar from '@/components/TopBar.vue'
@@ -22,24 +21,38 @@ onMounted(() => load())
 <template>
   <NConfigProvider :theme="darkTheme">
     <NMessageProvider>
-      <NLayout style="height: 100vh; background: #111;">
 
-        <NLayoutHeader :bordered="false" style="padding: 0;">
-          <TopBar
-            @open-settings="showSettings = true"
-            @start-convert="startConvert"
-          />
-        </NLayoutHeader>
+      <!-- Plain CSS flex column — avoids NLayoutContent's broken height chain -->
+      <div class="app-shell">
+        <TopBar
+          @open-settings="showSettings = true"
+          @start-convert="startConvert"
+        />
 
-        <NLayoutContent style="overflow: hidden; display: flex; flex-direction: column;">
-          <DropZone style="flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 8px 12px;">
-            <FileTable />
-          </DropZone>
-        </NLayoutContent>
-
-      </NLayout>
+        <DropZone class="content-area">
+          <FileTable />
+        </DropZone>
+      </div>
 
       <SettingsDrawer v-model:show="showSettings" />
     </NMessageProvider>
   </NConfigProvider>
 </template>
+
+<style scoped>
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #111;
+  overflow: hidden;
+}
+
+.content-area {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+}
+</style>
