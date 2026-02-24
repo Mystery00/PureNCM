@@ -27,8 +27,9 @@ export function useFiles() {
         const existing = new Set(files.value.map(f => f.path))
         for (const p of paths) {
             if (existing.has(p)) continue
-            // Extract filename and a rough size (size comes from backend in Step 5; use 0 for now)
-            const name = p.split(/[\\/]/).pop() ?? p
+            // Extract filename — strip trailing separators first to handle "C:\path\" style paths
+            const name = p.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || p
+
             files.value.push({
                 id: genId(),
                 path: p,
