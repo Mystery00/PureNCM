@@ -10,16 +10,13 @@ import FileTable from '@/components/FileTable.vue'
 import DropZone from '@/components/DropZone.vue'
 import SettingsDrawer from '@/components/SettingsDrawer.vue'
 import { useConfig } from '@/composables/useConfig'
+import { useConvert } from '@/composables/useConvert'
 
 const { load } = useConfig()
+const { startConvert } = useConvert()
 const showSettings = ref(false)
 
 onMounted(() => load())
-
-function handleStartConvert() {
-  // Step 5: IPC bridge will implement this
-  console.log('start convert — to be implemented in Step 5')
-}
 </script>
 
 <template>
@@ -30,7 +27,7 @@ function handleStartConvert() {
         <NLayoutHeader :bordered="false" style="padding: 0;">
           <TopBar
             @open-settings="showSettings = true"
-            @start-convert="handleStartConvert"
+            @start-convert="startConvert"
           />
         </NLayoutHeader>
 

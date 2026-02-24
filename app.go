@@ -8,6 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"PureNCM/internal/config"
+	"PureNCM/internal/ncm"
 )
 
 // App is the main application struct bound to the Wails frontend.
@@ -48,7 +49,6 @@ func (a *App) SetFilenamePattern(pattern string) error {
 // --- Dialog API ---
 
 // OpenFileDialog opens a native file picker filtered to .ncm files.
-// Returns a list of selected file paths.
 func (a *App) OpenFileDialog() ([]string, error) {
 	return runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "选择 NCM 文件",
@@ -59,7 +59,6 @@ func (a *App) OpenFileDialog() ([]string, error) {
 }
 
 // OpenDirectoryDialog opens a native folder picker.
-// Returns the selected directory path (empty string if cancelled).
 func (a *App) OpenDirectoryDialog() (string, error) {
 	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
 		Title:            "选择输出目录",
@@ -67,7 +66,76 @@ func (a *App) OpenDirectoryDialog() (string, error) {
 	})
 }
 
-// defaultOutputDir returns the user's Music folder as the default pick location.
+// --- Conversion API ---
+
+// ConvertProgress is the payload emitted as a Wails event for each file.
+type ConvertProgress struct {
+	Path       string `json:"path"`       // original input path (used as key by frontend)
+	Status     string `json:"status"`     // "converting" | "done" | "error"
+	OutputPath string `json:"outputPath"` // set when status == "done"
+	Error      string `json:"error"`      // set when status == "error"
+}
+
+const EventConvertProgress = "ncm:progress"
+
+// ConvertFiles decrypts a list of NCM files sequentially.
+// Progress is reported via the "ncm:progress" Wails event for each file.
+// outputDir: destination directory; empty string = same dir as source.
+// pattern:   filename pattern, e.g. "{title} - {artist}".
+func (a *App) ConvertFiles(paths []string, outputDir string, pattern string) {
+	for _, p := range paths {
+		// Emit "converting" status
+		runtime.EventsEmit(a.ctx, EventConvertProgress, ConvertProgress{
+			Path:   p,
+			Status: "converting",
+		})
+
+		// Determine output directory
+		outDir := outputDir
+		if outDir == "" {
+			outDir = filepath.Dir(p)
+		}
+		if err := os.MkdirAll(outDir, 0755); err != nil {
+			runtime.EventsEmit(a.ctx, EventConvertProgress, ConvertProgress{
+				Path:   p,
+				Status: "error",
+				Error:  "无法创建输出目录: " + err.Error(),
+			})
+			continue
+		}
+
+		// Decrypt
+		result, err := ncm.DecryptFile(p)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, EventConvertProgress, ConvertProgress{
+				Path:   p,
+				Status: "error",
+				Error:  err.Error(),
+			})
+			continue
+		}
+
+		// Write tagged file
+		outPath, err := ncm.WriteToFile(result, outDir, pattern)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, EventConvertProgress, ConvertProgress{
+				Path:   p,
+				Status: "error",
+				Error:  err.Error(),
+			})
+			continue
+		}
+
+		runtime.EventsEmit(a.ctx, EventConvertProgress, ConvertProgress{
+			Path:       p,
+			Status:     "done",
+			OutputPath: outPath,
+		})
+	}
+}
+
+// --- Helpers ---
+
 func defaultOutputDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
