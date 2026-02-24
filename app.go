@@ -72,6 +72,7 @@ func (a *App) OpenDirectoryDialog() (string, error) {
 type ConvertProgress struct {
 	Path       string `json:"path"`       // original input path (used as key by frontend)
 	Status     string `json:"status"`     // "converting" | "done" | "error"
+	Size       int64  `json:"size"`       // file size in bytes (set when status == "converting")
 	OutputPath string `json:"outputPath"` // set when status == "done"
 	Error      string `json:"error"`      // set when status == "error"
 }
@@ -84,10 +85,17 @@ const EventConvertProgress = "ncm:progress"
 // pattern:   filename pattern, e.g. "{title} - {artist}".
 func (a *App) ConvertFiles(paths []string, outputDir string, pattern string) {
 	for _, p := range paths {
-		// Emit "converting" status
+		// Read file size before processing
+		var fileSize int64
+		if fi, err := os.Stat(p); err == nil {
+			fileSize = fi.Size()
+		}
+
+		// Emit "converting" status with file size
 		runtime.EventsEmit(a.ctx, EventConvertProgress, ConvertProgress{
 			Path:   p,
 			Status: "converting",
+			Size:   fileSize,
 		})
 
 		// Determine output directory

@@ -9,6 +9,7 @@ const EVENT_PROGRESS = 'ncm:progress'
 interface ProgressPayload {
     path: string
     status: 'converting' | 'done' | 'error'
+    size?: number
     outputPath?: string
     error?: string
 }
@@ -34,6 +35,9 @@ export function useConvert() {
         if (!item) return
 
         item.status = payload.status
+        if (payload.size && payload.size > 0) {
+            item.size = payload.size
+        }
         if (payload.status === 'error') {
             item.error = payload.error ?? '未知错误'
         } else if (payload.status === 'done') {
