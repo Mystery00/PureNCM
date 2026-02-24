@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	id3v2 "github.com/bogem/id3v2/v2"
@@ -15,8 +16,9 @@ import (
 )
 
 // WriteToFile writes the decrypted audio with embedded tags to the output file.
-// It downloads cover art from meta.AlbumPic if coverData is empty.
-func WriteToFile(result *DecryptResult, outputDir string) (string, error) {
+// filenamePattern supports {title}, {artist}, {album} placeholders.
+// If the pattern resolves to an empty string, it falls back to {title}.
+func WriteToFile(result *DecryptResult, outputDir string, filenamePattern string) (string, error) {
 	meta := result.Meta
 	cover := result.CoverData
 
@@ -25,13 +27,16 @@ func WriteToFile(result *DecryptResult, outputDir string) (string, error) {
 		cover, _ = downloadCover(meta.AlbumPic)
 	}
 
-	// Build a safe output filename
-	name := meta.MusicName
+	// Build output filename from pattern
+	name := applyPattern(filenamePattern, meta)
 	if name == "" {
-		name = "unknown"
+		name = sanitizeFilename(meta.MusicName)
+	}
+	if name == "" {
+		name = fmt.Sprintf("track_%d", time.Now().Unix())
 	}
 	ext := "." + result.Format
-	outPath := filepath.Join(outputDir, sanitizeFilename(name)+ext)
+	outPath := filepath.Join(outputDir, name+ext)
 
 	switch result.Format {
 	case "flac":
@@ -39,6 +44,18 @@ func WriteToFile(result *DecryptResult, outputDir string) (string, error) {
 	default: // mp3
 		return outPath, writeMp3Tags(result.Audio, outPath, meta, cover)
 	}
+}
+
+// applyPattern replaces {title}, {artist}, {album} in pattern and sanitizes the result.
+func applyPattern(pattern string, meta *Meta) string {
+	if pattern == "" {
+		pattern = "{title}"
+	}
+	result := pattern
+	result = strings.ReplaceAll(result, "{title}", meta.MusicName)
+	result = strings.ReplaceAll(result, "{artist}", meta.Artists())
+	result = strings.ReplaceAll(result, "{album}", meta.Album)
+	return sanitizeFilename(result)
 }
 
 // writeMp3Tags writes audio bytes + ID3v2 tags to an mp3 file.

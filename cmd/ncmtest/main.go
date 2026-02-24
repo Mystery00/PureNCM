@@ -41,7 +41,7 @@ func main() {
 	log.Printf("Cover URL: %s", result.Meta.AlbumPic)
 	log.Printf("Audio    : %d bytes", len(result.Audio))
 
-	outPath, err := ncm.WriteToFile(result, outputDir)
+	outPath, err := ncm.WriteToFile(result, outputDir, "{title} - {artist}")
 	if err != nil {
 		log.Fatalf("write failed: %v", err)
 	}
