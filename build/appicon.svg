@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Modern Gradients -->
+    <linearGradient id="main-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF416C" />
+      <stop offset="100%" stop-color="#FF4B2B" />
+    </linearGradient>
+
+    <linearGradient id="sec-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8E2DE2" />
+      <stop offset="100%" stop-color="#4A00E0" />
+    </linearGradient>
+
+    <!-- Glassmorphic Glows -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="8" dy="16" stdDeviation="24" flood-color="#FF4B2B" flood-opacity="0.4" />
+    </filter>
+
+    <filter id="glow-sec" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="4" dy="8" stdDeviation="12" flood-color="#4A00E0" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Base Transparent Wrapper -->
+  <rect width="1024" height="1024" fill="transparent" />
+
+  <!-- Big Stylized Music Note -->
+  <!-- Note Base -->
+  <circle cx="360" cy="720" r="200" fill="url(#main-gradient)" filter="url(#glow)" />
+  <circle cx="360" cy="720" r="64" fill="#ffffff" />
+  
+  <!-- Note Stem -->
+  <rect x="460" y="220" width="100" height="500" fill="url(#main-gradient)" filter="url(#glow)" />
+  <circle cx="510" cy="220" r="50" fill="url(#main-gradient)" filter="url(#glow)" />
+
+  <!-- Note Flag -->
+  <path d="M 560 220 C 780 220 860 380 860 520 C 860 400 760 320 560 320 Z" fill="url(#main-gradient)" filter="url(#glow)" />
+
+  <!-- Conversion/Unlock Overlays -->
+  <g transform="translate(680, 720)" filter="url(#glow-sec)">
+    <!-- Tech Base -->
+    <circle cx="0" cy="0" r="140" fill="url(#sec-gradient)" />
+    
+    <!-- Refresh Arrows (representing Decryption/Conversion) -->
+    <!-- Top Arrow -->
+    <path d="M -70 -20 A 74 74 0 0 1 70 -20" stroke="#ffffff" stroke-width="24" stroke-linecap="round" fill="none" />
+    <polygon points="70,-50 70,10 100,-20" fill="#ffffff" />
+
+    <!-- Bottom Arrow -->
+    <path d="M 70 20 A 74 74 0 0 1 -70 20" stroke="#ffffff" stroke-width="24" stroke-linecap="round" fill="none" />
+    <polygon points="-70,50 -70,-10 -100,20" fill="#ffffff" />
+
+    <!-- Center Lock/Unlock Symbol -->
+    <g transform="translate(0, -6)">
+      <!-- Unlocked Shackle -->
+      <path d="M -20 -4 V -20 A 20 20 0 0 1 20 -20" stroke="#ffffff" stroke-width="8" stroke-linecap="round" fill="none" />
+      <!-- Lock Body -->
+      <rect x="-30" y="-4" width="60" height="44" rx="8" fill="#ffffff" />
+      <circle cx="0" cy="18" r="8" fill="url(#sec-gradient)" />
+    </g>
+  </g>
+</svg>
