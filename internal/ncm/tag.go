@@ -17,8 +17,13 @@ import (
 
 // WriteToFile writes the decrypted audio with embedded tags to the output file.
 // filenamePattern supports {title}, {artist}, {album} placeholders.
-// If the pattern resolves to an empty string, it falls back to {title}.
 func WriteToFile(result *DecryptResult, outputDir string, filenamePattern string) (string, error) {
+	return WriteToFileWithProgress(result, outputDir, filenamePattern, nil)
+}
+
+// WriteToFileWithProgress is like WriteToFile but calls progressFn(0..1) during the write.
+// progressFn may be nil.
+func WriteToFileWithProgress(result *DecryptResult, outputDir string, filenamePattern string, progressFn func(float64)) (string, error) {
 	meta := result.Meta
 	cover := result.CoverData
 
@@ -40,10 +45,29 @@ func WriteToFile(result *DecryptResult, outputDir string, filenamePattern string
 
 	switch result.Format {
 	case "flac":
-		return outPath, writeFlacTags(result.Audio, outPath, meta, cover)
+		return outPath, writeFlacTags(result.Audio, outPath, meta, cover, progressFn)
 	default: // mp3
-		return outPath, writeMp3Tags(result.Audio, outPath, meta, cover)
+		return outPath, writeMp3Tags(result.Audio, outPath, meta, cover, progressFn)
 	}
+}
+
+// countingWriter wraps an io.Writer and calls onWrite with cumulative progress (0..1).
+type countingWriter struct {
+	w       io.Writer
+	total   int64
+	written int64
+	fn      func(float64)
+}
+
+func (cw *countingWriter) Write(p []byte) (n int, err error) {
+	n, err = cw.w.Write(p)
+	if n > 0 && cw.fn != nil && cw.total > 0 {
+		cw.written += int64(n)
+		pct := float64(cw.written) / float64(cw.total)
+		if pct > 1 { pct = 1 }
+		cw.fn(pct)
+	}
+	return
 }
 
 // applyPattern replaces {title}, {artist}, {album} in pattern and sanitizes the result.
@@ -59,11 +83,19 @@ func applyPattern(pattern string, meta *Meta) string {
 }
 
 // writeMp3Tags writes audio bytes + ID3v2 tags to an mp3 file.
-func writeMp3Tags(audio []byte, path string, meta *Meta, cover []byte) error {
-	// Write raw audio first so bogem can open it
-	if err := os.WriteFile(path, audio, 0644); err != nil {
+func writeMp3Tags(audio []byte, path string, meta *Meta, cover []byte, progressFn func(float64)) error {
+	// Write raw audio via countingWriter so we can report progress
+	f, err := os.Create(path)
+	if err != nil {
 		return err
 	}
+	cw := &countingWriter{w: f, total: int64(len(audio)), fn: progressFn}
+	_, err = io.Copy(cw, bytes.NewReader(audio))
+	f.Close()
+	if err != nil {
+		return err
+	}
+
 	tag, err := id3v2.Open(path, id3v2.Options{Parse: false})
 	if err != nil {
 		return err
@@ -88,11 +120,11 @@ func writeMp3Tags(audio []byte, path string, meta *Meta, cover []byte) error {
 }
 
 // writeFlacTags writes audio bytes + Vorbis Comment tags to a flac file.
-func writeFlacTags(audio []byte, path string, meta *Meta, cover []byte) error {
+func writeFlacTags(audio []byte, path string, meta *Meta, cover []byte, progressFn func(float64)) error {
 	f, err := flac.ParseBytes(bytes.NewReader(audio))
 	if err != nil {
 		// If parse fails, write raw and return
-		return os.WriteFile(path, audio, 0644)
+		return writeWithProgress(path, audio, progressFn)
 	}
 
 	// Build vorbis comment block
@@ -129,9 +161,24 @@ func writeFlacTags(audio []byte, path string, meta *Meta, cover []byte) error {
 
 	if err := f.Save(path); err != nil {
 		// Fallback: write raw audio
-		return os.WriteFile(path, audio, 0644)
+		return writeWithProgress(path, audio, progressFn)
+	}
+	if progressFn != nil {
+		progressFn(1.0)
 	}
 	return nil
+}
+
+// writeWithProgress writes bytes to path, reporting progress via progressFn.
+func writeWithProgress(path string, data []byte, progressFn func(float64)) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	cw := &countingWriter{w: f, total: int64(len(data)), fn: progressFn}
+	_, err = io.Copy(cw, bytes.NewReader(data))
+	return err
 }
 
 // buildFlacPictureBlock creates a minimal PICTURE metadata block for FLAC.

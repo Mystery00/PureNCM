@@ -8,6 +8,7 @@ export interface FileItem {
     name: string
     size: number
     status: FileStatus
+    progress: number   // 0–1 write progress (only meaningful when status==='converting')
     error?: string
 }
 
@@ -35,8 +36,10 @@ export function useFiles() {
                 path: p,
                 name,
                 size: 0,
+                progress: 0,
                 status: 'pending',
             })
+
         }
     }
 

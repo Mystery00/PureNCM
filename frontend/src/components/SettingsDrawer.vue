@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import {
   NDrawer, NDrawerContent, NForm, NFormItem,
-  NInput, NButton, NText, NIcon, NSpace, NDivider,
+  NInput, NButton, NText, NIcon, NSpace, NDivider, NSwitch,
 } from 'naive-ui'
 import { FolderOpen } from '@vicons/ionicons5'
 import { useConfig } from '@/composables/useConfig'
@@ -11,7 +11,7 @@ import { OpenDirectoryDialog } from '../../wailsjs/go/main/App'
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ 'update:show': [boolean] }>()
 
-const { config, updateOutputDir, updateFilenamePattern } = useConfig()
+const { config, updateOutputDir, updateFilenamePattern, updateCopyLrc } = useConfig()
 
 // Local editable copy of filename pattern (committed on blur/enter)
 const patternDraft = ref(config.value.filenamePattern)
@@ -33,8 +33,6 @@ const previewName = computed(() => {
     .replace('{artist}', 'G.E.M.邓紫棋')
     .replace('{album}', '两个你')
 })
-
-import { computed } from 'vue'
 </script>
 
 <template>
@@ -78,6 +76,20 @@ import { computed } from 'vue'
             <NText style="font-size:12px; color:#63e2b7">
               预览：{{ previewName }}
             </NText>
+          </NSpace>
+        </NFormItem>
+
+        <NDivider />
+
+        <NFormItem label="复制歌词文件">
+          <NSpace align="center" justify="space-between" style="width:100%">
+            <NText depth="3" style="font-size:12px; flex:1">
+              转换完成后，若源目录存在同名 .lrc 文件<br>则自动复制到输出目录（需设置输出目录）
+            </NText>
+            <NSwitch
+              :value="config.copyLrc"
+              @update:value="updateCopyLrc"
+            />
           </NSpace>
         </NFormItem>
 

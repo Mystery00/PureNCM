@@ -10,6 +10,8 @@ export function OpenDirectoryDialog():Promise<string>;
 
 export function OpenFileDialog():Promise<Array<string>>;
 
+export function SetCopyLrc(arg1:boolean):Promise<void>;
+
 export function SetFilenamePattern(arg1:string):Promise<void>;
 
 export function SetOutputDir(arg1:string):Promise<void>;

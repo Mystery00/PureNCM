@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { h, computed } from 'vue'
 import {
-  NDataTable, NTag, NButton, NIcon, NText, NEmpty,
+  NDataTable, NTag, NButton, NIcon, NText, NEmpty, NProgress,
   type DataTableColumns,
 } from 'naive-ui'
 import { CloseCircle, CheckmarkCircle, TimeOutline, SyncOutline } from '@vicons/ionicons5'
@@ -39,9 +39,23 @@ const columns = computed<DataTableColumns<FileItem>>(() => [
   {
     title: '状态',
     key: 'status',
-    width: 110,
+    width: 160,
     align: 'center',
     render(row) {
+      if (row.status === 'converting') {
+        const pct = Math.round((row.progress ?? 0) * 100)
+        return h('div', { style: 'padding: 0 8px; min-width: 120px' }, [
+          h(NProgress, {
+            type: 'line',
+            status: 'info',
+            percentage: pct,
+            indicatorPlacement: 'inside',
+            height: 18,
+            borderRadius: 4,
+            fillBorderRadius: 4,
+          }),
+        ])
+      }
       const s = statusMap[row.status]
       const icon = {
         pending:    TimeOutline,
@@ -53,7 +67,6 @@ const columns = computed<DataTableColumns<FileItem>>(() => [
         type: s.type,
         size: 'small',
         round: true,
-        style: row.status === 'converting' ? 'animation: spin 1s linear infinite' : '',
       }, {
         icon: () => h(NIcon, null, { default: () => h(icon) }),
         default: () => s.label,

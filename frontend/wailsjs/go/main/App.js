@@ -18,6 +18,10 @@ export function OpenFileDialog() {
   return window['go']['main']['App']['OpenFileDialog']();
 }
 
+export function SetCopyLrc(arg1) {
+  return window['go']['main']['App']['SetCopyLrc'](arg1);
+}
+
 export function SetFilenamePattern(arg1) {
   return window['go']['main']['App']['SetFilenamePattern'](arg1);
 }

@@ -1,12 +1,13 @@
 import { ref } from 'vue'
-import { GetConfig, SetOutputDir, SetFilenamePattern } from '../../wailsjs/go/main/App'
+import { GetConfig, SetOutputDir, SetFilenamePattern, SetCopyLrc } from '../../wailsjs/go/main/App'
 
 export interface AppConfig {
     outputDir: string
     filenamePattern: string
+    copyLrc: boolean
 }
 
-const config = ref<AppConfig>({ outputDir: '', filenamePattern: '{title}' })
+const config = ref<AppConfig>({ outputDir: '', filenamePattern: '{title}', copyLrc: false })
 
 export function useConfig() {
     const load = async () => {
@@ -28,5 +29,10 @@ export function useConfig() {
         config.value.filenamePattern = pattern
     }
 
-    return { config, load, updateOutputDir, updateFilenamePattern }
+    const updateCopyLrc = async (enabled: boolean) => {
+        await SetCopyLrc(enabled)
+        config.value.copyLrc = enabled
+    }
+
+    return { config, load, updateOutputDir, updateFilenamePattern, updateCopyLrc }
 }

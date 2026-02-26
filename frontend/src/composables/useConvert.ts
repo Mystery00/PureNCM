@@ -10,6 +10,7 @@ interface ProgressPayload {
     path: string
     status: 'converting' | 'done' | 'error'
     size?: number
+    progress?: number
     outputPath?: string
     error?: string
 }
@@ -38,10 +39,15 @@ export function useConvert() {
         if (payload.size && payload.size > 0) {
             item.size = payload.size
         }
+        if (payload.progress !== undefined) {
+            item.progress = payload.progress
+        }
         if (payload.status === 'error') {
             item.error = payload.error ?? '未知错误'
+            item.progress = 0
         } else if (payload.status === 'done') {
             item.error = undefined
+            item.progress = 1
         }
     }
 

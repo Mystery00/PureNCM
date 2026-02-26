@@ -17,6 +17,7 @@ const (
 type Config struct {
 	OutputDir       string `json:"outputDir"`
 	FilenamePattern string `json:"filenamePattern"`
+	CopyLrc         bool   `json:"copyLrc"` // copy .lrc sidecar to output dir after conversion
 }
 
 var (
@@ -93,6 +94,17 @@ func SetFilenamePattern(pattern string) error {
 		pattern = DefaultFilenamePattern
 	}
 	instance.FilenamePattern = pattern
+	return save(instance)
+}
+
+// SetCopyLrc sets whether to copy .lrc sidecar files after conversion.
+func SetCopyLrc(enabled bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+	if instance == nil {
+		instance = defaultConfig()
+	}
+	instance.CopyLrc = enabled
 	return save(instance)
 }
 
