@@ -9,5 +9,12 @@
   "author": {
     "name": "Mystery0",
     "email": "mystery0dyl520@gmail.com"
+  },
+  "info": {
+    "companyName": "Mystery0",
+    "productName": "PureNCM",
+    "productVersion": "0.0.1",
+    "copyright": "Copyright © 2026 Mystery0",
+    "comments": "NCM 音乐文件解密转换工具"
   }
 }

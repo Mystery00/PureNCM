@@ -1,0 +1,147 @@
+name: Release
+
+# Triggered when you push a tag like v0.0.1
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # needed to create releases and upload assets
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # Windows — NSIS installer (.exe)
+  # ────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+
+      - name: Build Windows installer
+        run: wails build -nsis -platform windows/amd64 -ldflags "-w -s"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/bin/PureNCM-amd64-installer.exe
+          if-no-files-found: error
+
+  # ────────────────────────────────────────────────────────────────
+  # macOS — DMG
+  # ────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build macOS app
+        run: wails build -platform darwin/universal -ldflags "-w -s"
+
+      - name: Package as DMG
+        run: |
+          create-dmg \
+            --volname "PureNCM" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "PureNCM.app" 175 190 \
+            --hide-extension "PureNCM.app" \
+            --app-drop-link 425 190 \
+            "build/bin/PureNCM.dmg" \
+            "build/bin/PureNCM.app"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: build/bin/PureNCM.dmg
+          if-no-files-found: error
+
+  # ────────────────────────────────────────────────────────────────
+  # Release — create GitHub Release and upload both installers
+  # ────────────────────────────────────────────────────────────────
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/
+
+      - name: Download macOS DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/
+
+      # Strip leading 'v' from tag: v0.0.1 → 0.0.1
+      - name: Compute version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Rename artifacts with version
+        run: |
+          mv dist/PureNCM-amd64-installer.exe  dist/PureNCM-${{ steps.ver.outputs.version }}-windows-amd64.exe
+          mv dist/PureNCM.dmg                   dist/PureNCM-${{ steps.ver.outputs.version }}-macos-universal.dmg
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "PureNCM v${{ steps.ver.outputs.version }}"
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}  # e.g. v0.1.0-beta → prerelease
+          generate_release_notes: true
+          files: |
+            dist/PureNCM-${{ steps.ver.outputs.version }}-windows-amd64.exe
+            dist/PureNCM-${{ steps.ver.outputs.version }}-macos-universal.dmg
